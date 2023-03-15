@@ -1,0 +1,392 @@
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+import javax.swing.JTextArea;
+import java.awt.Font;
+import javax.swing.JTextField;
+import javax.swing.JLabel;
+import javax.swing.SwingConstants;
+public class TetPanel extends JPanel{
+    
+    private Random rand = new Random();
+    private boolean spawned = false, hold = false, holding = true, inputs = true;
+    private final int WIDTH = 16, HEIGHT = 42;
+    private int count = 0, spawnX = 9, spawnY = 8, delay = 25, center = 0, heldPiece = 0;
+    private String[][] board = new String[HEIGHT][WIDTH], held = new String[6][6];
+    private int[][] coords = new int[2][4];
+    private int temp;
+    private String pieceFace;
+    private Piece piece;
+    private String boardTxt = "", heldTxt = "";
+    private int width = 500, height = 700;
+	private Dimension size = new Dimension(width, height);
+	private Timer timer;
+	private JTextArea boardArea, heldArea;
+	private JLabel heldLabel;
+	private String faces = "\u25A0 \u25A7 \u25A3 \u25A2 \u25A9 \u25D9 \u25E9 ";
+	private final JTextField input;
+	private ArrayList<Integer> pieceList= new ArrayList<Integer>();
+	
+    public TetPanel(){
+    	this.setPreferredSize(size);
+    	setLayout(null);
+    	boardArea = new JTextArea();
+    	boardArea.setEditable(false);
+    	boardArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+    	boardArea.setBounds(137, 0, 363, 700);
+    	add(boardArea);
+    	
+    	input = new JTextField();
+    	input.setBounds(10, 677, 40, 19);
+    	add(input);
+    	
+    	heldArea = new JTextArea();
+    	heldArea.setFont(new Font("Monospaced", Font.PLAIN, 16));
+    	heldArea.setBounds(10, 46, 117, 137);
+    	add(heldArea);
+    	
+    	heldLabel = new JLabel("Held");
+    	heldLabel.setFont(new Font("HP Simplified", Font.PLAIN, 30));
+    	heldLabel.setHorizontalAlignment(SwingConstants.CENTER);
+    	heldLabel.setBounds(10, 7, 117, 26);
+    	add(heldLabel);
+    	
+    	temp = rand.nextInt(7);
+		for(int i = 0; i<7; i++) {
+			while(true) {
+				if(!pieceList.contains(temp)) {
+    				pieceList.add(temp);
+    				break;
+				}
+				else {
+					temp = rand.nextInt(7);
+				}
+			}
+		}
+    	
+    	timer = new Timer(delay, new TimeListener());
+    	setBoard();
+    	resetHeld();
+    	printHeld();
+    	timer.start();
+    	
+    }
+    
+    public class TimeListener implements ActionListener{
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			checkInput();
+			if(hold) {
+				spawnHeld();
+				printHeld();
+				hold = false;
+			}
+			
+			if(count%20 == 0) {
+			if(!spawned) {
+				inputs = true;
+	        	if(gameOver()) {
+	        		try {
+						TimeUnit.SECONDS.sleep(3);
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+	            	System.exit(0);
+	        	}
+	        	if(pieceList.size() != 0) {
+		            piece = new Piece(pieceList.get(0));
+		            pieceList.remove(0);
+	        	}
+	        	else {
+	        		temp = rand.nextInt(7);
+	        		for(int i = 0; i<7; i++) {
+	        			while(true) {
+	        				if(!pieceList.contains(temp)) {
+		        				pieceList.add(temp);
+		        				break;
+	        				}
+	        				else {
+	        					temp = rand.nextInt(7);
+	        				}
+	        			}
+	        		}
+	        	}
+	            spawnCoords(); 
+	            pieceFace = piece.setFace();
+	            update();
+	            spawned = true;
+	            
+	        } 
+	        else {
+	            update();
+	        }
+
+	        
+		}
+			printBoard();
+	        
+	        boardTxt+= "FPS: " + count/((delay/1000.0)*count);
+	        boardTxt = "";
+	        
+	        count++;
+			timer.stop();
+			timer.start();
+		}
+    	
+    }
+    
+    private boolean gameOver() {
+    	 for(int x = 0; x<10; x++){
+             for(int y = 0; y<WIDTH; y++){
+            	 if(!board[x][y].equals("\u25E6 ")) {
+            		 return true;
+            	 }
+             }
+    	 }
+    	 return false;
+    }
+    
+    /////    Prints the board
+    
+    private void setBoard(){
+        for(int x = 0; x<HEIGHT; x++){
+            for(int y = 0; y<WIDTH; y++){
+                 board[x][y] = "\u25E6 ";
+            }
+        }
+    }
+    
+    private void resetHeld() {
+        for(int x = 0; x<6; x++){
+            for(int y = 0; y<6; y++){
+                 held[x][y] = "\u25E6 ";
+            }
+        }
+    }
+    
+    private void printBoard(){
+        boardTxt += "    ---------------------------------\n";
+        for(int x = 10; x<HEIGHT; x++){
+            boardTxt += "    ";
+            for(int y = 1; y<WIDTH-1; y++){
+                boardTxt += board[x][y];
+            }
+            boardTxt += "\n";
+        }
+        boardTxt += "    ---------------------------------\n";
+        boardArea.setText(boardTxt);
+        
+        
+    }
+    
+    private void printHeld() {
+    	for(int x = 0; x<6; x++){
+            for(int y = 0; y<6; y++){
+            	heldTxt += held[x][y];
+            }
+            heldTxt += "\n";
+        }
+        heldArea.setText(heldTxt);
+    }
+    
+    
+    /////    Get coordinate of piece
+    
+    private void getCoords(){
+        int countY = 0;
+        for(int x = 10; x<HEIGHT; x++){
+            for(int y = 0; y<WIDTH; y++){
+                if(board[x][y].equals(pieceFace)){
+                    coords[0][countY] = x;
+                    coords[1][countY] = x;
+                    countY++;
+                }
+            }
+        }
+    }
+    
+    
+    /////    Spawns and moves Piece
+    
+    private void spawnCoords(){
+        for(int y = 0; y<4; y++){
+            coords[0][y] = piece.coords[0][y] + spawnY;
+            coords[1][y] = piece.coords[1][y] + spawnX;
+            if(piece.coords[0][y] == 0 && piece.coords[1][y] == 0 ) {
+            	center = y;
+            }
+        }
+    }
+    
+    private void spinCoords() {
+    	for(int y = 0; y<4; y++){
+    		if(y != center) {
+        		coords[0][y] = piece.coords[0][y] + coords[0][center];
+                coords[1][y] = piece.coords[1][y] + coords[1][center];
+    		}
+        }
+    }
+
+    private void update(){
+        clear();
+        coords[0][0]++;
+        coords[0][1]++;
+        coords[0][2]++;
+        coords[0][3]++;
+        hit();
+        spawn();
+    }
+    
+    private void spawnHeld(){
+    	clear();
+    	heldTxt = "";
+    	resetHeld();
+        for(int i = 0; i<4; i++){
+            held[piece.coords[0][i]+2][piece.coords[1][i]+2] = pieceFace;
+        }
+        spawned = false;
+    }
+    
+    private void spawn(){
+        for(int i = 0; i<4; i++){
+        	if(coords[0][i] < 42) {
+                board[coords[0][i]][coords[1][i]] = pieceFace;
+        	}
+        }
+    }
+    
+    private void clear(){
+        for(int i = 0; i<4; i++){
+        	if(coords[0][i] < 42) {
+                board[coords[0][i]][coords[1][i]] = "\u25E6 ";
+        	}
+        }
+    }
+    
+    //// Movement
+    
+	private void checkInput() {
+		
+		String temp = input.getText();
+		if(temp.contains("w")) {
+			while(spawned) {
+				update();
+			}
+		}
+		
+		if(temp.equals("a") || temp.equals("d")) {
+			clear();
+			move(temp);
+			hit();
+			spawn();
+		}
+		if(temp.contains("s")) {
+			if(spawned) {
+				update();
+			}
+		}
+		if(temp.contains("qe") || temp.contains("eq")) {
+			hold = true;
+			if(holding) {
+				pieceList.set(0, heldPiece);
+			}
+			else {
+				holding = true;
+			}
+			heldPiece = piece.getPiece();
+		}
+		if(temp.contains("q")) {
+			piece.spinLeft();
+			clear();
+			spinCoords();
+			hit();
+			spawn();
+			if(!spawned) {
+				update();
+			}
+		}
+		if(temp.contains("e")) {
+			piece.spinRight();
+			clear();
+			spinCoords();
+			hit();
+			spawn();
+			if(!spawned) {
+				update();
+			}
+		}
+		
+		input.setText("");
+		
+	}
+    
+    private void move(String s) {
+    	if(s.contains("a")) {
+            coords[1][0]--;
+            coords[1][1]--;
+            coords[1][2]--;
+            coords[1][3]--;
+    	}
+    	if(s.contains("d")) {
+    		coords[1][0]++;
+            coords[1][1]++;
+            coords[1][2]++;
+            coords[1][3]++;
+    	}
+    }
+    
+    
+    //// Collision
+    
+    private void hit(){
+    	for(int num = 0; num < 4; num++) {
+    		//border floor check
+    		if(coords[0][num]+1 == HEIGHT){
+		        spawned =  false;
+		        break;
+		    }
+		    else if(coords[0][num]+1 != 42 && faces.contains(board[coords[0][num]+1][coords[1][num]])) {
+		    	spawned = false;
+		    	break;
+		    }
+    		//border side check
+		    if(coords[1][num]+1 == WIDTH) {
+		    	coords[1][0]--;
+		    	coords[1][1]--;
+		    	coords[1][2]--;
+		    	coords[1][3]--;
+		    	break;
+		    }
+		    else if(coords[1][num]-1 == -1) {
+		    	coords[1][0]++;
+		    	coords[1][1]++;
+		    	coords[1][2]++;
+		    	coords[1][3]++;
+		    	break;
+		    	
+		    }
+		    //piece check
+		    if(faces.contains(board[coords[0][num]][coords[1][num]+1])) {
+		    	System.out.println("right");
+		    	break;
+		    }
+		    else if(faces.contains(board[coords[0][num]][coords[1][num]-1])) {
+		    	System.out.println("left");
+		    	break;
+		    }   
+    	}
+    }
+}
+    

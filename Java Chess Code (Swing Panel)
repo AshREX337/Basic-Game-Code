@@ -1,0 +1,530 @@
+import java.awt.*;
+
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.SwingConstants;
+import javax.swing.border.Border;
+
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+
+public class ChessPanel extends JPanel implements MouseListener{
+
+    private int width = 900, height = 720;
+	private Dimension size = new Dimension(width, height);
+	
+	int turn = 0;
+	
+	private JLabel boardImg = new JLabel("");
+	private RotateLabel[][] board = new RotateLabel[8][8];
+	
+	private ArrayList<String> bPieces = new ArrayList<String>(Arrays.asList("\u265F", "\u265C", "\u265E", "\u265D", "\u265B", "\u265A"));
+	private ArrayList<String> wPieces = new ArrayList<String>(Arrays.asList("\u2659", "\u2656", "\u2658", "\u2657", "\u2655", "\u2654"));
+	
+	private Border highlight, selected, move;
+	private boolean moving = false;
+	
+	private ArrayList<Integer> selection = new ArrayList<Integer>();
+	
+	public ChessPanel() {
+		System.out.println(selection);
+		this.setPreferredSize(size);
+		setLayout(null);
+		highlight = BorderFactory.createLineBorder(Color.GREEN, 8);
+		selected = BorderFactory.createLineBorder(Color.BLACK, 8);
+		move = BorderFactory.createLineBorder(Color.RED, 8);
+		setBoard();
+	}
+	
+   public class RotateLabel extends JLabel {
+	   	int rotate;
+	      public RotateLabel(String text, int rotation) {
+	         super(text);
+	         rotate = rotation;
+	         FontMetrics metrics = new FontMetrics(new Font("Serif", Font.PLAIN, 70)){};
+	         Rectangle2D bounds = metrics.getStringBounds(text, null);
+	         setBounds(0, 0, (int) bounds.getWidth(), (int) bounds.getHeight());
+	      }
+	      @Override
+	      public void paintComponent(Graphics g) {
+	         Graphics2D gx = (Graphics2D) g;
+	         gx.rotate(Math.toRadians(rotate), getWidth()/2, getHeight()/2);
+	         super.paintComponent(g);
+	      }
+	      
+	      public void Rotate(int rotation) {
+	    	  rotate = rotation;
+	      }
+	}
+	
+	private void setBoard() 
+	{
+		boardImg.setIcon(new ImageIcon(ChessPanel.class.getResource("/Images/chessBoard.png")));
+		boardImg.setHorizontalAlignment(SwingConstants.CENTER);
+		boardImg.setBounds(101, 13, 699, 697);
+		boardImg.setLayout(new GridLayout(8,8,0,0));
+		add(boardImg);
+		
+		for(int row = 0; row<board.length; row++) {
+			for(int col = 0; col<board[row].length; col++) {
+				if(row==1) {
+					board[row][col] = new RotateLabel("\u265F", 0);
+				}
+				else if(row == 6) {
+					board[row][col] = new RotateLabel("\u2659" , 0);
+				}
+				else if(row == 0) {
+					switch (col) {
+						case 0:
+							board[row][col] = new RotateLabel("\u265C" , 0);
+							break;
+						case 1:
+							board[row][col] = new RotateLabel("\u265E" , 0);
+							break;
+						case 2:
+							board[row][col] = new RotateLabel("\u265D" , 0);
+							break;
+						case 3:
+							board[row][col] = new RotateLabel("\u265B" , 0);
+							break;
+						case 4:
+							board[row][col] = new RotateLabel("\u265A" , 0);
+							break;
+						case 5:
+							board[row][col] = new RotateLabel("\u265D" , 0);
+							break;
+						case 6:
+							board[row][col] = new RotateLabel("\u265E" , 0);
+							break;
+						case 7:
+							board[row][col] = new RotateLabel("\u265C" , 0);
+							break;
+						default:
+							break;
+					}
+				}
+				else if(row == 7) {
+					switch (col) {
+						case 0:
+							board[row][col] = new RotateLabel("\u2656" , 0);
+							break;
+						case 1:
+							board[row][col] = new RotateLabel("\u2658" , 0);
+							break;
+						case 2:
+							board[row][col] = new RotateLabel("\u2657" , 0);
+							break;
+						case 3:
+							board[row][col] = new RotateLabel("\u2655" , 0);
+							break;
+						case 4:
+							board[row][col] = new RotateLabel("\u2654" , 0);
+							break;
+						case 5:
+							board[row][col] = new RotateLabel("\u2657" , 0);
+							break;
+						case 6:
+							board[row][col] = new RotateLabel("\u2658" , 0);
+							break;
+						case 7:
+							board[row][col] = new RotateLabel("\u2656" , 0);
+							break;
+						default:
+							break;
+					}
+				}
+				else {
+					board[row][col] = new RotateLabel("", 0);
+				}
+				
+				board[row][col].addMouseListener(this);
+				board[row][col].setFont(new Font("Serif", Font.PLAIN, 70));
+				board[row][col].setBounds(getVisibleRect());
+				board[row][col].setHorizontalAlignment(SwingConstants.CENTER);
+				boardImg.add(board[row][col]);
+			}
+		}
+		
+		
+	}
+	
+	
+	private boolean checkMove(String name, int y, int x) {
+		
+		boolean canMove = false;
+		
+		if(wPieces.contains(board[y][x].getText()) && turn % 2 == 0) {
+			return false;
+		}
+		if(bPieces.contains(board[y][x].getText()) && turn % 2 == 1) {
+			return false;
+		}
+		
+		
+		switch(bPieces.indexOf(name)) {
+			case 0:
+				System.out.println(board[y][x].getText());
+				if(x == selection.get(1) && !wPieces.contains(board[y][x].getText())) {
+					if(selection.get(0)+2 == y && selection.get(0) == 1) {
+						canMove = true;
+					}
+					else if(selection.get(0)+1 == y) {
+						canMove = true;
+					}
+				}
+				if(wPieces.contains(board[y][x].getText()) && (Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1)) && Math.abs(y-selection.get(0)) == 1)){
+					canMove  = true;
+				}
+				break;
+				
+			case 1:
+				if(y-selection.get(0) == 0 || x-selection.get(1) == 0) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,1)) {
+					canMove = false;
+				}
+				break;
+				
+			case 2:
+				if((Math.abs(y-selection.get(0)) == 2 && Math.abs(x-selection.get(1)) == 1) || (Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 2)) {
+					canMove = true;
+				}
+				
+				break;
+				
+			case 3:
+				if(Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1))) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,bPieces.indexOf(name))) {
+					canMove = false;
+				}
+				break;
+				
+			case 4:
+				if(Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1))) {
+					canMove = true;
+				}
+				if(y-selection.get(0) == 0 || x-selection.get(1) == 0) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,bPieces.indexOf(name))) {
+					canMove = false;
+				}
+				break;
+				
+			case 5:
+				if(Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 1) {
+					canMove = true;
+				}
+				if((Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 0) || (Math.abs(y-selection.get(0)) == 0 && Math.abs(x-selection.get(1)) == 1)) {
+					canMove = true;
+				}
+				break;
+				
+			default:
+				break;
+		}
+		
+		
+		
+		switch(wPieces.indexOf(name)) {
+			case 0:
+				System.out.println(board[y][x].getText());
+				if(x == selection.get(1) && !wPieces.contains(board[y][x].getText())) {
+					if(selection.get(0)-2 == y && selection.get(0) == 6) {
+						canMove = true;
+					}
+					else if(selection.get(0)-1 == y) {
+						canMove = true;
+					}
+				}
+				if(bPieces.contains(board[y][x].getText()) && (Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1)) && Math.abs(y-selection.get(0)) == 1)){
+					canMove  = true;
+				}
+				break;
+				
+			case 1:
+				if(y-selection.get(0) == 0 || x-selection.get(1) == 0) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,1)) {
+					canMove = false;
+				}
+				break;
+				
+			case 2:
+				if((Math.abs(y-selection.get(0)) == 2 && Math.abs(x-selection.get(1)) == 1) || (Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 2)) {
+					canMove = true;
+				}
+				break;
+				
+			case 3:
+				if(Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1))) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,wPieces.indexOf(name))) {
+					canMove = false;
+				}
+				break;
+				
+			case 4:
+				if(Math.abs(y-selection.get(0)) == Math.abs(x-selection.get(1))) {
+					canMove = true;
+				}
+				if(y-selection.get(0) == 0 || x-selection.get(1) == 0) {
+					canMove = true;
+				}
+				if(collisionCheck(y,x,wPieces.indexOf(name))) {
+					canMove = false;
+				}
+				break;
+				
+			case 5:
+				if(Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 1) {
+					canMove = true;
+				}
+				if((Math.abs(y-selection.get(0)) == 1 && Math.abs(x-selection.get(1)) == 0) || (Math.abs(y-selection.get(0)) == 0 && Math.abs(x-selection.get(1)) == 1)) {
+					canMove = true;
+				}
+				break;
+				
+			default:
+				break;
+		}
+		
+		System.out.println(canMove);
+		return canMove;
+	}
+	
+	private boolean collisionCheck(int x, int y, int num) {
+		for (int i = 0; i < 8; i++) 
+		{	
+			for (int g = 0; g < 8; g++) 
+			{
+				switch(num) {
+					case 1:
+						if(x-selection.get(0) >0) {
+							if(i < x && g == y && i > selection.get(0)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(x-selection.get(0) < 0) {
+							if(i > x && g == y && i < selection.get(0)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(y-selection.get(1) >0) {
+							if(i == x && g < y && g > selection.get(1)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(y-selection.get(1) < 0) {
+							if(i == x && g > y && g < selection.get(1)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						break;
+					case 3:
+						if(x-selection.get(0) > 0 && y-selection.get(1) >0 ) {
+							if(i < x && g < y && i > selection.get(0) && g > selection.get(1)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(x-selection.get(0) < 0 && y-selection.get(1) < 0 ) {
+							if(i > x && g > y && i < selection.get(0) &&  g < selection.get(1)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(y-selection.get(1) > 0 && x- selection.get(0) < 0) {
+							if(i > x && g < y && g > selection.get(1) && i < selection.get(0)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						else if(y-selection.get(1) < 0 && x- selection.get(0) > 0) {
+							if(i < x && g > y && g < selection.get(1) && i > selection.get(0)) {
+								if(!board[i][g].getText().equals("")) {
+									return true;
+								}
+							}
+						}
+						
+						break;
+					case 4:
+						break;
+					default:
+						break;
+					
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	private void checkWin() {
+		int bCount = 0, wCount = 0;
+		for (int i = 0; i < 8; i++) 
+		{	
+			for (int j = 0; j < 8; j++) 
+			{
+				if(board[i][j].getText().equals(bPieces.get(5))) {
+					bCount++;
+				}
+				if(board[i][j].getText().equals(wPieces.get(5))) {
+					wCount++;
+				}
+			}
+		}
+		if(bCount == 1 && wCount == 0) {
+			System.out.println("Black Win by Deathmate");
+			System.exit(0);
+		}
+		else if(bCount == 0 && wCount == 1) {
+			System.out.println("White Win by Deathmate");
+			System.exit(0);
+		}
+	}
+	
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		
+		Object src = e.getSource();
+			
+		for (int i = 0; i < 8; i++) 
+		{	
+			for (int j = 0; j < 8; j++) 
+			{
+				if(src == board[i][j]) 
+				{
+					if(moving && checkMove(board[selection.get(0)][selection.get(1)].getText(), i, j) && board[i][j] != board[selection.get(0)][selection.get(1)] && board[selection.get(0)][selection.get(1)].getBorder() == selected) {
+						board[i][j].setBorder(null);
+						board[i][j].setText(board[selection.get(0)][selection.get(1)].getText());
+						for (int s = 0; s < 8; s++) 
+						{	
+							for (int s2 = 0; s2 < 8; s2++) 
+							{
+								if(turn%2 == 0) {
+									board[s][s2].Rotate(180);
+								}
+								else {
+									board[s][s2].Rotate(0);
+								}
+								board[s][s2].setBorder(highlight);
+								board[s][s2].setBorder(null);
+							}
+						}
+						moving = false;
+						board[selection.get(0)][selection.get(1)].setBorder(null);
+						board[selection.get(0)][selection.get(1)].setText("");
+						selection.clear();
+						checkWin();
+						turn++;
+						return;
+					}
+					
+					if(!moving && board[i][j].getBorder() != selected && !board[i][j].getText().equals("")) {
+						if((turn % 2 == 0 && wPieces.contains(board[i][j].getText())) || (turn % 2 == 1 && bPieces.contains(board[i][j].getText()))) {
+							board[i][j].setBorder(selected);
+							selection.add(i);
+							selection.add(j);
+							moving = true;
+						}
+						return;
+					}
+					for (int t = 0; t < 8; t++) 
+					{	
+						for (int t2 = 0; t2 < 8; t2++) 
+						{
+							board[t][t2].setBorder(null);
+						}
+					}
+					board[i][j].setBorder(null); 
+					moving = false;
+					selection.clear();
+					
+					
+				}
+			}
+		}
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e)
+	{
+		Object src = e.getSource();
+		
+		for (int i = 0; i < 8; i++) 
+		{	
+			for (int j = 0; j < 8; j++) 
+			{
+				if(src == board[i][j]) 
+				{
+					if(board[i][j].getBorder() != selected) {
+						board[i][j].setBorder(highlight);
+						if(moving) {
+							board[i][j].setBorder(move);
+						}
+					}
+					
+					
+				}
+			}
+		}
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e)
+	{
+		Object src = e.getSource();
+		
+		for (int i = 0; i < 8; i++) 
+		{	
+			for (int j = 0; j < 8; j++) 
+			{
+				if(src == board[i][j]) 
+				{
+					if(board[i][j].getBorder() != selected) {
+						board[i][j].setBorder(null);
+					}
+				}
+			}
+		}
+		
+	}
+}

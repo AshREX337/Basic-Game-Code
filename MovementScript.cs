@@ -14,7 +14,7 @@ public class MovementScript : MonoBehaviour
     [SerializeField] private Rigidbody rb;
 
     [SerializeField] private float moveSpeed, mouseSens, groundDrag;
-    private float rotY, rotX, tempMoveSpeed;
+    private float rotY, rotX, tempMoveSpeed, camFov;
     [SerializeField] private Camera mainCamera;
 
 
@@ -30,6 +30,7 @@ public class MovementScript : MonoBehaviour
     [Header("Jumping")]
 
     public float jumpForce;
+    private float jumpForceMod = 3;
     public float jumpCooldown;
     public float airMultiplier;
     public float playerHeight;
@@ -48,6 +49,7 @@ public class MovementScript : MonoBehaviour
 
     public float crouchMultiplier;
     public float sprintMultiplier;
+    public float sprintFovStrength;
 
 
 
@@ -57,7 +59,7 @@ public class MovementScript : MonoBehaviour
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
-
+        camFov = mainCamera.fieldOfView;
         tempMoveSpeed = moveSpeed;
     }
     // Update is called once per frame
@@ -99,11 +101,11 @@ public class MovementScript : MonoBehaviour
 
         if (!grounded)
         {
-            rb.drag = 0;
+            rb.linearDamping = 0;
         }
         else
         {
-            rb.drag = groundDrag;   
+            rb.linearDamping = groundDrag;   
         }
 
 
@@ -111,6 +113,7 @@ public class MovementScript : MonoBehaviour
         if (Input.GetKeyDown(crouchKey))
         {
             moveSpeed *= crouchMultiplier;
+            
         }
         else if(Input.GetKeyUp(crouchKey))
         {
@@ -121,10 +124,25 @@ public class MovementScript : MonoBehaviour
         if (Input.GetKeyDown(sprintKey))
         {
             moveSpeed *= sprintMultiplier;
+            jumpForce += jumpForceMod;
         }
         else if (Input.GetKeyUp(sprintKey))
         {
             moveSpeed = tempMoveSpeed;
+            jumpForce -= jumpForceMod;
+        }
+        //Sprint FOV Shift
+        if(Input.GetKey(sprintKey))
+        {
+            mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, camFov + sprintFovStrength, 0.05f);
+        }
+        else if(mainCamera.fieldOfView > camFov)
+        {
+            mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, camFov, 0.05f);
+        }
+        else
+        {
+            mainCamera.fieldOfView = camFov;
         }
     }
 
@@ -148,18 +166,18 @@ public class MovementScript : MonoBehaviour
 
     private void SpeedControl()
     {
-        Vector3 flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
 
         if (flatVel.magnitude > moveSpeed)
         {
             Vector3 limited = flatVel.normalized * moveSpeed;
-            rb.velocity = new Vector3(limited.x, rb.velocity.y, limited.z);
+            rb.linearVelocity = new Vector3(limited.x, rb.linearVelocity.y, limited.z);
         }
     }
 
     private void Jump()
     {
-        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
 
     }
